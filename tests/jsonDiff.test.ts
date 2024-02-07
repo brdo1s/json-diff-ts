@@ -7,12 +7,12 @@ import {
     revertChangeset,
     unflattenChanges,
   } from '../src/jsonDiff'
-  
+
   let oldObj: any
   let newObj: any
   let changesetWithoutEmbeddedKey: IChange[]
   let changeset: IChange[]
-  
+
   beforeEach(done => {
     oldObj = {
       name: 'joe',
@@ -33,7 +33,7 @@ import {
         { name: 'kid2', age: 2 },
       ],
     }
-  
+
     newObj = {
       name: 'smith',
       mixed: '10',
@@ -52,11 +52,10 @@ import {
         { name: 'kid2', age: 2 },
       ],
     }
-  
+
     changeset = [
       { type: Operation.UPDATE, key: 'name', value: 'smith', oldValue: 'joe' },
-      { type: Operation.REMOVE, key: 'mixed', value: 10 },
-      { type: Operation.ADD, key: 'mixed', value: '10' },
+      { type: Operation.UPDATE, key: 'mixed', oldValue: 10, value: '10' },
       {
         type: Operation.UPDATE,
         key: 'nested',
@@ -129,15 +128,14 @@ import {
           { type: Operation.ADD, key: 'kid3', value: { name: 'kid3', age: 3 } },
         ],
       },
-  
+
       { type: Operation.REMOVE, key: 'age', value: 55 },
       { type: Operation.REMOVE, key: 'empty', value: undefined },
     ]
-  
+
     changesetWithoutEmbeddedKey = [
       { type: Operation.UPDATE, key: 'name', value: 'smith', oldValue: 'joe' },
-      { type: Operation.REMOVE, key: 'mixed', value: 10 },
-      { type: Operation.ADD, key: 'mixed', value: '10' },
+      { type: Operation.UPDATE, key: 'mixed', oldValue: 10, value: '10' },
       {
         type: Operation.UPDATE,
         key: 'nested',
@@ -215,20 +213,20 @@ import {
           { type: Operation.ADD, key: '2', value: { name: 'kid2', age: 2 } },
         ],
       },
-  
+
       { type: Operation.REMOVE, key: 'age', value: 55 },
       { type: Operation.REMOVE, key: 'empty', value: undefined },
     ]
     done()
   })
-  
+
   describe('jsonDiff#diff', () => {
     test('should return correct diff for object with embedded array object that does not have key specified', done => {
       const diffs = diff(oldObj, newObj)
       expect(diffs).toMatchObject(changesetWithoutEmbeddedKey)
       done()
     })
-  
+
     test('should return correct diff for object with embedded array object that does have keys', done => {
       const diffs = diff(oldObj, newObj, {
         children: 'name',
@@ -238,7 +236,7 @@ import {
       done()
     })
   })
-  
+
   describe('jsonDiff#applyChangeset', () => {
     test('should transfer oldObj to newObj with changeset', done => {
       applyChangeset(oldObj, changeset)
@@ -246,7 +244,7 @@ import {
       expect(oldObj).toMatchObject(newObj)
       done()
     })
-  
+
     test('should transfer oldObj to newObj with changesetWithoutEmbeddedKey', done => {
       applyChangeset(oldObj, changesetWithoutEmbeddedKey)
       newObj.children.sort((a: any, b: any) => a.name > b.name)
@@ -255,7 +253,7 @@ import {
       done()
     })
   })
-  
+
   describe('jsonDiff#revertChangeset', () => {
     test('should transfer newObj to oldObj with changeset', done => {
       revertChangeset(newObj, changeset)
@@ -263,7 +261,7 @@ import {
       expect(newObj).toMatchObject(oldObj)
       done()
     })
-  
+
     test('should transfer newObj to oldObj with changesetWithoutEmbeddedKey', done => {
       revertChangeset(newObj, changesetWithoutEmbeddedKey)
       newObj.children.sort((a: any, b: any) => a.name > b.name)
@@ -271,44 +269,43 @@ import {
       done()
     })
   })
-  
+
   describe('jsonDiff#flatten', () => {
     test('flatten changes, unflatten and apply', done => {
       const diffs = diff(oldObj, newObj, {
         children: 'name',
         'children.subset': 'id',
       })
-  
+
       const flat = flattenChangeset(diffs)
       const unflat = unflattenChanges(flat)
-  
+
       applyChangeset(oldObj, unflat)
-  
+
       newObj.children = newObj.children.sort((a: any, b: any) => a.name > b.name)
       oldObj.children = oldObj.children.sort((a: any, b: any) => a.name > b.name)
-  
+
       expect(oldObj).toMatchObject(newObj)
-  
+
       done()
     })
 
     test('Start with blank object, flatten changes, unflatten and apply', done => {
-  
+
       const beforeObj = {}
       const afterObj = newObj
-  
+
       const diffs = diff(beforeObj, afterObj, {})
-  
+
       const flat = flattenChangeset(diffs)
       const unflat = unflattenChanges(flat)
-  
+
       applyChangeset(beforeObj, unflat)
 
       expect(beforeObj).toMatchObject(afterObj)
-  
+
       done()
     })
-  
-    
+
+
   })
-  
